@@ -155,7 +155,7 @@ tr.row-p4 td.col-check{border-left:2px solid var(--p4-border)}
 tr.row-done .task-name-text{text-decoration:line-through;color:var(--ink-3)}
 .task-desc-text{font-size:11px;color:var(--ink-3);line-height:1.4;display:block;margin-bottom:3px}
 .task-meta-line{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
-.cat-chip{font-size:9px;padding:2px 7px;border-radius:3px;background:var(--ivory-2);color:var(--ink-2);white-space:nowrap;font-weight:400;letter-spacing:.06em}
+.cat-chip{display:none}
 
 /* ── Priority / Assignee badges ── */
 .badge{display:inline-block;font-size:10px;padding:3px 9px;border-radius:999px;font-weight:400;white-space:nowrap;letter-spacing:.04em}
@@ -445,7 +445,7 @@ body.dark{--ivory:#100E0C;--ivory-2:#1C1916;--ivory-3:#2E2926;--ink:#F6F3ED;--in
         <select id="f-group" onchange="applyFilters()">
           <option value="assignee">Assignee</option>
           <option value="priority">Priority</option>
-          <option value="category">Category</option>
+          <option value="category" style="display:none">Category</option>
         </select>
         <div class="filter-sep"></div>
         <label>Filter:</label>
@@ -464,7 +464,7 @@ body.dark{--ivory:#100E0C;--ivory-2:#1C1916;--ivory-3:#2E2926;--ink:#F6F3ED;--in
           <option value="Done">Done</option>
           <option value="Blocked">Blocked</option>
         </select>
-        <select id="f-category" onchange="applyFilters()"><option value="all">All categories</option></select>
+        <select id="f-category" onchange="applyFilters()" style="display:none"><option value="all">All categories</option></select>
         <input type="text" id="f-search" placeholder="&#128269; Search tasks…" style="width:160px" oninput="applyFilters()">
         <div class="filter-sep"></div>
         <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:9px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.16em;font-weight:500;white-space:nowrap">
@@ -525,20 +525,18 @@ body.dark{--ivory:#100E0C;--ivory-2:#1C1916;--ivory-3:#2E2926;--ink:#F6F3ED;--in
         <select id="m-assignee"><option value="">Unassigned</option></select>
       </div>
     </div>
-    <div class="form-row-2">
-      <div class="form-row" style="margin:0">
-        <label>Category</label>
-        <select id="m-category"><option value="">No category</option></select>
-      </div>
-      <div class="form-row" style="margin:0">
-        <label>Status</label>
-        <select id="m-status">
-          <option value="To Do" selected>To Do</option>
-          <option value="In Progress">In Progress</option>
-          <option value="Done">Done</option>
-          <option value="Blocked">Blocked</option>
-        </select>
-      </div>
+    <div class="form-row" style="display:none">
+      <label>Category</label>
+      <select id="m-category"><option value="">No category</option></select>
+    </div>
+    <div class="form-row">
+      <label>Status</label>
+      <select id="m-status">
+        <option value="To Do" selected>To Do</option>
+        <option value="In Progress">In Progress</option>
+        <option value="Done">Done</option>
+        <option value="Blocked">Blocked</option>
+      </select>
     </div>
     <div class="form-row-2">
       <div class="form-row" style="margin:0"><label>Due date</label><input type="date" id="m-due" /></div>
@@ -589,7 +587,7 @@ body.dark{--ivory:#100E0C;--ivory-2:#1C1916;--ivory-3:#2E2926;--ink:#F6F3ED;--in
     <h3>&#9881; Settings</h3>
     <div class="settings-tabs">
       <button class="stab active" onclick="switchSettingsTab('assignees')">Assignees</button>
-      <button class="stab" onclick="switchSettingsTab('categories')">Categories</button>
+      <button class="stab" onclick="switchSettingsTab('categories')" style="display:none">Categories</button>
       <button class="stab" onclick="switchSettingsTab('colors')">Colors</button>
       <button class="stab" onclick="switchSettingsTab('airtable')">Airtable</button>
       <button class="stab" onclick="switchSettingsTab('appearance')">Appearance</button>
@@ -629,7 +627,7 @@ body.dark{--ivory:#100E0C;--ivory-2:#1C1916;--ivory-3:#2E2926;--ink:#F6F3ED;--in
         <div class="sm-color-group-label">Assignee colors</div>
         <div id="color-assignees"></div>
       </div>
-      <div class="sm-color-group">
+      <div class="sm-color-group" style="display:none">
         <div class="sm-color-group-label">Category colors</div>
         <div id="color-categories"></div>
       </div>
@@ -1089,8 +1087,7 @@ function applyFilters() {
                     (document.getElementById('f-priority')?.value  || 'all') !== 'all' ||
                     (document.getElementById('f-status')?.value    || 'all') !== 'all' ||
                     (document.getElementById('f-category')?.value  || 'all') !== 'all' ||
-                    (document.getElementById('f-search')?.value    || '') !== '' ||
-                    (document.getElementById('f-hide-done')?.checked || false);
+                    (document.getElementById('f-search')?.value    || '') !== '';
   const clearBtn = document.getElementById('btn-clear-filters');
   if (clearBtn) clearBtn.style.display = anyActive ? 'block' : 'none';
   renderAll();
@@ -1991,9 +1988,13 @@ document.addEventListener('keydown', e => {
 });
 
 // ── Close modals on backdrop click ────────────────────────────────────────────
+// Track mousedown origin so text-selection drags that end on the backdrop
+// don't accidentally close the modal.
 document.querySelectorAll('.modal-bg').forEach(bg => {
+  let downOnBg = false;
+  bg.addEventListener('mousedown', e => { downOnBg = e.target === bg; });
   bg.addEventListener('click', e => {
-    if (e.target === bg) {
+    if (e.target === bg && downOnBg) {
       closeAddModal();
       closePrintModal();
       closeSettings();

@@ -3,13 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light">
 <title>CMC — To-Do</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{
+:root{color-scheme:light;
   --ink:#0C0A08;--ink-2:#6A5D50;--ink-3:#A8998A;
   --ivory:#F6F3ED;--ivory-2:#EDE8DF;--ivory-3:#DDD6CA;
   --rule:rgba(12,10,8,.08);--border:rgba(12,10,8,.10);--border-lt:rgba(12,10,8,.05);
@@ -442,8 +443,8 @@ body.dark{--ivory:#100E0C;--ivory-2:#1C1916;--ivory-3:#2E2926;--ink:#F6F3ED;--in
       <div class="filter-bar">
         <label>Group:</label>
         <select id="f-group" onchange="applyFilters()">
-          <option value="priority">Priority</option>
           <option value="assignee">Assignee</option>
+          <option value="priority">Priority</option>
           <option value="category">Category</option>
         </select>
         <div class="filter-sep"></div>
@@ -465,6 +466,11 @@ body.dark{--ivory:#100E0C;--ivory-2:#1C1916;--ivory-3:#2E2926;--ink:#F6F3ED;--in
         </select>
         <select id="f-category" onchange="applyFilters()"><option value="all">All categories</option></select>
         <input type="text" id="f-search" placeholder="&#128269; Search tasks…" style="width:160px" oninput="applyFilters()">
+        <div class="filter-sep"></div>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:9px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.16em;font-weight:500;white-space:nowrap">
+          <input type="checkbox" id="f-hide-done" onchange="applyFilters()" style="width:14px;height:14px;cursor:pointer;accent-color:var(--field);flex-shrink:0">
+          Hide completed
+        </label>
         <button class="btn-clear-filters" id="btn-clear-filters" onclick="clearFilters()" style="display:none">&#10005; Clear</button>
       </div>
 
@@ -1058,13 +1064,15 @@ function refreshFilterDropdowns() {
 }
 
 function getFilteredTasks() {
-  const assignee = document.getElementById('f-assignee')?.value || 'all';
-  const priority = document.getElementById('f-priority')?.value || 'all';
-  const status   = document.getElementById('f-status')?.value   || 'all';
-  const category = document.getElementById('f-category')?.value || 'all';
-  const search   = (document.getElementById('f-search')?.value  || '').toLowerCase();
+  const assignee  = document.getElementById('f-assignee')?.value  || 'all';
+  const priority  = document.getElementById('f-priority')?.value  || 'all';
+  const status    = document.getElementById('f-status')?.value    || 'all';
+  const category  = document.getElementById('f-category')?.value  || 'all';
+  const search    = (document.getElementById('f-search')?.value   || '').toLowerCase();
+  const hideDone  = document.getElementById('f-hide-done')?.checked || false;
 
   return tasks.filter(t => {
+    if (hideDone && (t.status === 'Done' || t.checked)) return false;
     if (assignee !== 'all' && t.assignee !== assignee) return false;
     if (priority !== 'all' && t.priority !== priority) return false;
     if (status   !== 'all' && t.status   !== status)   return false;
@@ -1077,11 +1085,12 @@ function getFilteredTasks() {
 }
 
 function applyFilters() {
-  const anyActive = (document.getElementById('f-assignee')?.value || 'all') !== 'all' ||
-                    (document.getElementById('f-priority')?.value || 'all') !== 'all' ||
-                    (document.getElementById('f-status')?.value   || 'all') !== 'all' ||
-                    (document.getElementById('f-category')?.value || 'all') !== 'all' ||
-                    (document.getElementById('f-search')?.value   || '') !== '';
+  const anyActive = (document.getElementById('f-assignee')?.value  || 'all') !== 'all' ||
+                    (document.getElementById('f-priority')?.value  || 'all') !== 'all' ||
+                    (document.getElementById('f-status')?.value    || 'all') !== 'all' ||
+                    (document.getElementById('f-category')?.value  || 'all') !== 'all' ||
+                    (document.getElementById('f-search')?.value    || '') !== '' ||
+                    (document.getElementById('f-hide-done')?.checked || false);
   const clearBtn = document.getElementById('btn-clear-filters');
   if (clearBtn) clearBtn.style.display = anyActive ? 'block' : 'none';
   renderAll();
@@ -1089,11 +1098,12 @@ function applyFilters() {
 
 function clearFilters() {
   const el = id => document.getElementById(id);
-  if (el('f-assignee')) el('f-assignee').value = 'all';
-  if (el('f-priority')) el('f-priority').value = 'all';
-  if (el('f-status'))   el('f-status').value   = 'all';
-  if (el('f-category')) el('f-category').value = 'all';
-  if (el('f-search'))   el('f-search').value   = '';
+  if (el('f-assignee'))  el('f-assignee').value   = 'all';
+  if (el('f-priority'))  el('f-priority').value   = 'all';
+  if (el('f-status'))    el('f-status').value      = 'all';
+  if (el('f-category'))  el('f-category').value   = 'all';
+  if (el('f-search'))    el('f-search').value      = '';
+  if (el('f-hide-done')) el('f-hide-done').checked = false;
   applyFilters();
 }
 
@@ -1117,7 +1127,7 @@ function sortedByPriority(taskArr) {
 
 function renderAll() {
   updateStats();
-  const groupMode = document.getElementById('f-group')?.value || 'priority';
+  const groupMode = document.getElementById('f-group')?.value || 'assignee';
   const filtered  = getFilteredTasks();
   const container = document.getElementById('task-list');
   if (!container) return;
@@ -1557,7 +1567,7 @@ async function saveTask() {
 // ── Print modal ───────────────────────────────────────────────────────────────
 function openPrintModal() {
   refreshFilterDropdowns();
-  const groupMode = document.getElementById('f-group')?.value || 'priority';
+  const groupMode = document.getElementById('f-group')?.value || 'assignee';
   const newPageCb = document.getElementById('print-new-page');
   if (newPageCb) newPageCb.checked = (groupMode === 'assignee');
   updatePrintPreview(); // also sets the group label
@@ -1580,7 +1590,7 @@ function getPrintTasks() {
 
 function updatePrintPreview() {
   const printTasks = getPrintTasks();
-  const groupMode  = document.getElementById('f-group')?.value || 'priority';
+  const groupMode  = document.getElementById('f-group')?.value || 'assignee';
   const container  = document.getElementById('print-preview-content');
   const labelEl    = document.getElementById('print-group-label');
 
@@ -1764,7 +1774,7 @@ function buildPrintPage(pageTasks, pageLabel, gMode, dateStr) {
 }
 
 function buildPrintView() {
-  const gMode       = document.getElementById('f-group')?.value || 'priority';
+  const gMode       = document.getElementById('f-group')?.value || 'assignee';
   const newPage     = document.getElementById('print-new-page')?.checked || false;
   const printTasks  = getPrintTasks();
   const printDiv    = document.getElementById('print-view');
